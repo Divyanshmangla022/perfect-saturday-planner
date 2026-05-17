@@ -124,32 +124,46 @@ tool-based, not document-based — which is the right choice for live place data
 
 ## Run locally
 
+**Prerequisites:** Python **3.10 or newer** and a free Gemini API key
+(get one in ~1 minute at <https://aistudio.google.com/apikey>).
+
 ```bash
-# 1. Clone and enter the project
-git clone <your-repo-url>
+# 1. Clone the repo and enter it
+git clone https://github.com/Divyanshmangla022/perfect-saturday-planner.git
 cd perfect-saturday-planner
 
-# 2. Create a virtualenv and install dependencies
-python3.12 -m venv .venv
+# 2. Create a virtual environment
+python3 -m venv .venv
+
+#    Activate it —
+#    macOS / Linux:
 source .venv/bin/activate
+#    Windows (PowerShell):
+#    .venv\Scripts\Activate.ps1
+
+# 3. Install dependencies
 pip install -r requirements.txt
 
-# 3. Add your Gemini API key (free: https://aistudio.google.com/apikey)
-cp .env.example .env
-#   then edit .env and set GEMINI_API_KEY=...
+# 4. Add your Gemini API key
+cp .env.example .env          # Windows: copy .env.example .env
+#    then open .env and set:  GEMINI_API_KEY=your-key-here
 
-# 4. Run
+# 5. Run the app
 streamlit run app.py
 ```
 
-The app opens at `http://localhost:8501`. You can also paste the key into the
-sidebar instead of using `.env`.
+The app opens automatically at <http://localhost:8501>.
 
-Run the offline tests (no key/network needed):
+> **No `.env`?** You can also just paste the key into the **sidebar** of the
+> running app — handy for a quick try.
+
+**Run the test suite** (no API key or internet needed):
 
 ```bash
 python tests/test_offline.py
 ```
+
+You should see `10 offline tests passed.`
 
 ## Deploy to Streamlit Community Cloud
 
@@ -183,11 +197,12 @@ tests/test_offline.py  network-free unit tests
 Python 3.12 · Streamlit · Google Gemini (`google-genai`) · Pydantic · httpx ·
 OpenStreetMap (Nominatim + Overpass) · Open-Meteo.
 
-## How AI tools were used in the build
+## How I used AI tools while building this
 
-This project was built with **Claude Code** as a pair-programmer. I used it to
-scaffold the agent/tool architecture, write the OpenStreetMap and Open-Meteo
-clients, and iterate on the prompt design and the streaming-trace UI. Every
-external API was tested live during the build, and I reviewed and directed all
-architectural decisions (tool boundaries, the replan/fallback loop, dynamic
-OSM-tag mapping) myself.
+I used Claude Code (Anthropic's terminal coding assistant) to help me write the
+code faster — but the architecture and product calls were mine: an agent built
+from separate tools instead of one big prompt, and real OpenStreetMap/Open-Meteo
+data instead of mock data. Most of my actual effort went into testing it on real
+cities and edge cases (Pune, hill stations, very tight budgets), where I found
+bugs like broken geocoding and a currency-symbol glitch and got each one fixed.
+The deployed app itself uses Google Gemini as the agent's LLM.
