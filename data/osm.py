@@ -13,21 +13,21 @@ from agent.models import GeoLocation, POI
 
 NOMINATIM_URL = "https://nominatim.openstreetmap.org/search"
 
-# The main Overpass endpoint is frequently overloaded (504s). Try mirrors in
-# order so venue search stays reliable in production.
+# The main Overpass endpoint is the most reliable; the others are fallbacks
+# for when it is overloaded (504s). Tried in order.
 OVERPASS_ENDPOINTS = [
     "https://overpass-api.de/api/interpreter",
-    "https://overpass.kumi.systems/api/interpreter",
     "https://overpass.private.coffee/api/interpreter",
-    "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
+    "https://overpass.kumi.systems/api/interpreter",
 ]
 
 # Nominatim's usage policy requires an identifying User-Agent.
 _HEADERS = {"User-Agent": "perfect-saturday-planner/1.0 (assignment project)"}
 
-# A city bounding box can be huge; clamp the search to a ~12 km window around
-# the centre so venue results stay relevant and Overpass stays fast.
-_MAX_BBOX_HALF_DEGREES = 0.11
+# The venue search box is always built as a fixed ~8 km radius around the city
+# centre. Nominatim's own bounding box is unreliable — for a city returned as a
+# point it collapses to zero area — so we never depend on it.
+_SEARCH_RADIUS_DEGREES = 0.075
 
 # Used only when the LLM fails to produce filters — broad, sensible defaults.
 DEFAULT_ACTIVITY_FILTERS = [
@@ -57,7 +57,7 @@ def _sanitize_filters(filters: list[str], fallback: list[str]) -> list[str]:
 
 
 def geocode_city(city: str, *, timeout: float = 15.0) -> GeoLocation:
-    """Resolve a city name to coordinates + a clamped search box."""
+    """Resolve a city name to its centre coordinates + a fixed search box."""
     city = (city or "").strip()
     if not city:
         raise GeocodeError("No city was provided.")
@@ -78,21 +78,19 @@ def geocode_city(city: str, *, timeout: float = 15.0) -> GeoLocation:
 
     top = results[0]
     lat, lon = float(top["lat"]), float(top["lon"])
-    # Nominatim bbox order is [south, north, west, east].
-    s, n, w, e = (float(x) for x in top["boundingbox"])
 
-    # Clamp to keep the venue search city-scale, not region-scale.
-    s = max(s, lat - _MAX_BBOX_HALF_DEGREES)
-    n = min(n, lat + _MAX_BBOX_HALF_DEGREES)
-    w = max(w, lon - _MAX_BBOX_HALF_DEGREES)
-    e = min(e, lon + _MAX_BBOX_HALF_DEGREES)
+    # Build the search box as a fixed radius around the centre. Nominatim's own
+    # bounding box can be a polygon (a city) or collapse to a point (zero area)
+    # depending on how the place is mapped — so we never rely on it.
+    half = _SEARCH_RADIUS_DEGREES
+    bbox = (lat - half, lon - half, lat + half, lon + half)  # south, west, north, east
 
     return GeoLocation(
         city=city,
         display_name=top.get("display_name", city),
         lat=lat,
         lon=lon,
-        bbox=(s, w, n, e),
+        bbox=bbox,
     )
 
 
@@ -100,10 +98,12 @@ def _build_overpass_query(filters: list[str], bbox: tuple[float, float, float, f
                           limit: int) -> str:
     s, w, n, e = bbox
     box = f"({s},{w},{n},{e})"
-    # Search nodes, ways and relations so we catch parks/buildings too.
+    # Search nodes and ways — covers point venues (cafes) and area venues
+    # (parks, large buildings). Relations are dropped: rare and expensive,
+    # they roughly tripled query time for little extra coverage.
     parts = []
     for f in filters:
-        for el in ("node", "way", "relation"):
+        for el in ("node", "way"):
             parts.append(f"  {el}{f}{box};")
     body = "\n".join(parts)
     return f"[out:json][timeout:25];\n(\n{body}\n);\nout center {limit};"
@@ -137,7 +137,7 @@ def _score_poi(tags: dict) -> int:
 
 def search_pois(filters: list[str], bbox: tuple[float, float, float, float],
                 category: str, *, fallback_filters: list[str] | None = None,
-                limit: int = 60, keep: int = 25, timeout: float = 40.0) -> list[POI]:
+                limit: int = 60, keep: int = 25, timeout: float = 28.0) -> list[POI]:
     """Query Overpass for venues matching `filters` inside `bbox`.
 
     Returns the best-described `keep` results. Raises on transport failure so
