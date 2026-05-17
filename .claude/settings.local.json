@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:bitscale-ai.notion.site)",
+      "Bash(python3.12 -m venv .venv)",
+      "Bash(.venv/bin/pip install *)",
+      "Bash(.venv/bin/pip list *)",
+      "Bash(.venv/bin/python -c ' *)",
+      "Bash(.venv/bin/python tests/test_offline.py)",
+      "Bash(git init *)",
+      "Bash(git add *)",
+      "Bash(git -c 'user.name=Divyansh Mangla' -c user.email=divyanshmangla022@gmail.com commit -q -m ' *)"
+    ]
+  }
+}
