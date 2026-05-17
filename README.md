@@ -199,10 +199,10 @@ OpenStreetMap (Nominatim + Overpass) · Open-Meteo.
 
 ## How I used AI tools while building this
 
-I used Claude Code (Anthropic's terminal coding assistant) to help me write the
-code faster — but the architecture and product calls were mine: an agent built
-from separate tools instead of one big prompt, and real OpenStreetMap/Open-Meteo
-data instead of mock data. Most of my actual effort went into testing it on real
-cities and edge cases (Pune, hill stations, very tight budgets), where I found
-bugs like broken geocoding and a currency-symbol glitch and got each one fixed.
-The deployed app itself uses Google Gemini as the agent's LLM.
+I used an AI coding assistant to help me write the code faster — but the
+architecture and product calls were mine: an agent built from separate tools
+instead of one big prompt, and real OpenStreetMap/Open-Meteo data instead of
+mock data. Most of my actual effort went into testing it on real cities and
+edge cases (Pune, hill stations, very tight budgets), where I found bugs like
+broken geocoding and a currency-symbol glitch and got each one fixed. The
+deployed app itself uses Google Gemini as the agent's LLM.
