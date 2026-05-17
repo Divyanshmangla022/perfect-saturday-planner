@@ -276,7 +276,7 @@ if st.session_state.mode == "input":
 
     with tab_form:
         with st.form("plan_form"):
-            city = st.text_input("City", placeholder="e.g. Bangalore")
+            city = st.text_input("City", placeholder="e.g. Lisbon, Bangalore, Nairobi…")
             col1, col2 = st.columns(2)
             budget = col1.number_input("Budget", min_value=0, value=2000, step=100,
                                        help="In your city's local currency.")
@@ -314,10 +314,12 @@ if st.session_state.mode == "input":
     with tab_text:
         st.write("Describe your ideal Saturday in your own words:")
         free_text = st.text_area("Your request", height=140,
-                                 placeholder="I'm in Bangalore with about ₹2000 and "
-                                 "4 free hours on Saturday. Feeling a bit tired but "
-                                 "want something fun — I love food, music and walks. "
-                                 "Vegetarian, and please avoid crowded places.",
+                                 placeholder="Mention your city, budget, hours free, "
+                                 "mood, what you enjoy, and any constraints. For "
+                                 "example: a free Saturday in your city, budget around "
+                                 "2000, about 4 hours, feeling a bit tired but want "
+                                 "something fun — love food, music and walks; "
+                                 "vegetarian and prefer to avoid crowded places.",
                                  label_visibility="collapsed")
         if st.button("✨ Plan my Saturday", type="primary", key="text_submit",
                      use_container_width=True):
