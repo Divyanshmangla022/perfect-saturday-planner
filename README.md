@@ -15,7 +15,7 @@ you and showing its reasoning step by step.
 
 ## What makes it an *agent*, not a prompt
 
-The plan is produced by **8 discrete tools** wired into a control loop — not one
+The plan is produced by **9 discrete tools** wired into a control loop — not one
 giant prompt. The orchestrator decides what runs when, asks for clarification
 when needed, and **replans** when a draft fails validation.
 
@@ -66,7 +66,7 @@ per venue and the app is transparent about that in the cost breakdown.
 |-------------|-------|
 | Hosted web app, public URL | Streamlit Community Cloud |
 | Accepts structured **or** free-text input | `app.py` — two input tabs |
-| ≥ 3 tools, not one prompt | 8 tools in `agent/tools.py` |
+| ≥ 3 tools, not one prompt | 9 tools in `agent/tools.py` |
 | Realistic, specific plan | `generate_final_plan` over real OSM venues |
 | Explains why each part fits | `why_it_fits` on every stop |
 | Handles a failure case gracefully | City-not-found, no venues, weather/Overpass outage, LLM error |
@@ -126,7 +126,8 @@ tool-based, not document-based — which is the right choice for live place data
 
 ```bash
 # 1. Clone and enter the project
-git clone <your-repo-url> && cd Project
+git clone <your-repo-url>
+cd perfect-saturday-planner
 
 # 2. Create a virtualenv and install dependencies
 python3.12 -m venv .venv
@@ -167,7 +168,7 @@ python tests/test_offline.py
 app.py                 Streamlit UI + live streaming trace
 agent/
   orchestrator.py      the agent loop (control flow, replan, fallback)
-  tools.py             the 8 tools
+  tools.py             the 9 tools
   llm.py               Gemini wrapper (structured output + retries)
   models.py            Pydantic models — the contract between tools
   prompts.py           all LLM prompt text

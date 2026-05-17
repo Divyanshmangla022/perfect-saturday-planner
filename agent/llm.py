@@ -95,10 +95,3 @@ class LLMClient:
             return schema.model_validate_json(resp.text)
         except Exception as exc:  # noqa: BLE001
             raise LLMError(f"Model did not return valid {schema.__name__}: {exc}") from exc
-
-    def complete_text(self, prompt: str, *, system: str = "",
-                      temperature: float = 0.7) -> str:
-        config = types.GenerateContentConfig(
-            system_instruction=system or None, temperature=temperature,
-        )
-        return self._generate(prompt, config).text.strip()

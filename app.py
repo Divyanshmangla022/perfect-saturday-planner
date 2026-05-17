@@ -254,10 +254,10 @@ with st.sidebar:
     st.markdown("---")
     st.markdown(
         "**How it works**\n\n"
-        "An AI agent runs 8 tools — it parses your request, geocodes the city, "
+        "An AI agent runs 9 tools — it parses your request, geocodes the city, "
         "checks the forecast, searches **real venues on OpenStreetMap**, drafts "
-        "an itinerary, costs it, validates it against your budget/time, and "
-        "replans if needed.\n\n"
+        "an itinerary, verifies every venue is a real place, costs it, validates "
+        "it against your budget/time, and replans if needed.\n\n"
         "No place data is hardcoded — it works for any city."
     )
 
