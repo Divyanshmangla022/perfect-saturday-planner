@@ -21,7 +21,7 @@ from agent.orchestrator import run_agent
 load_dotenv()
 
 st.set_page_config(page_title="Perfect Saturday Planner", page_icon="🗓️",
-                   layout="centered", initial_sidebar_state="collapsed")
+                   layout="centered", initial_sidebar_state="expanded")
 
 CATEGORY_ICON = {"food": "🍽️", "activity": "🎯", "break": "☕", "travel": "🚕"}
 
