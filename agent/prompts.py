@@ -23,18 +23,23 @@ INPUT GUARDRAIL — check this first:
 
 Rules:
 - The `city` MUST be a specific city or town — never a state, region or
-  country. If the user names a region instead (e.g. "Uttarakhand", "Goa",
-  "Bavaria"), choose the best-known city or town there that best fits their
-  interests (for trekking in Uttarakhand, e.g. Dehradun or Mussoorie), set it
-  as `city`, and mention that choice in normalized_summary. Do NOT raise a
-  clarifying question merely because the user named a region.
-- Infer the local currency from the city (Bangalore -> INR/₹, London -> GBP/£,
-  New York -> USD/$, etc.). If the city is unknown, default to USD/$.
+  country. If the user names a region, or a small place with little to do,
+  choose a specific destination city/town that best fits their interests, set
+  it as `city`, and mention that choice in normalized_summary. Do NOT raise a
+  clarifying question merely because of this.
+- When the interests are clearly about hills, mountains, trekking, snow or
+  scenic nature, pick a GENUINE hill station or nature destination — NOT the
+  nearest big city. Match it to the available time and budget: a closer hill
+  town for a short or low-budget day, a farther well-known one for a long,
+  well-funded day. The user arranges their own travel to the destination; you
+  plan the day spent there.
+- Infer the local currency and its symbol from the city's country. If the city
+  or country cannot be determined, default to USD ($).
 - available_hours: convert any phrasing ("a full day", "4 hours", "an evening")
   into a number of hours.
-- transport_cost_per_km: estimate the typical local ride-hail/auto-rickshaw/taxi
-  cost per kilometre in that city, in local currency (e.g. ~15 INR/km in Indian
-  cities, ~2 USD/km in New York). Used to cost travel between stops.
+- transport_cost_per_km: estimate the typical local ride-hail/taxi cost per
+  kilometre in that city, in its local currency. Used to cost travel between
+  stops.
 - Keep the user's mood in their own words.
 - needs_clarification = true ONLY when the request is too vague to plan well —
   e.g. no interests AND no mood, or a contradictory request. When true, add 1-2
@@ -97,6 +102,11 @@ PLAN RICHNESS — make the day genuinely worth it:
   naturally low-cost (nature, walking, trekking are mostly free), that is fine
   and HONEST — do not pad the plan. Instead say so in tradeoffs and suggest how
   they could use the rest if they want (a nicer meal, gear, a guided trek).
+- FILL THE DAY: build a plan that genuinely uses a good share of the available
+  hours — roughly 70-90% of them — unless the user's mood calls for a
+  deliberately light day. A long day (10+ hours) left half-empty feels thin and
+  vague: add more real stops, or give the best stops more time. Scale the
+  itinerary to the time and budget the user actually has.
 - FOOD: if "food" is among the interests, include at least one real sit-down
   MEAL at a restaurant (not only a cafe or a snack). Make it a highlight.
 - VARIETY: do not repeat the same kind of stop (e.g. two walks). Every stop

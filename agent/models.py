@@ -23,16 +23,16 @@ class PreferenceProfile(BaseModel):
 
     city: str = Field(description="City the user wants to spend Saturday in.")
     budget: float = Field(description="Total budget as a number, in local currency.")
-    currency: str = Field(default="INR", description="ISO currency code, inferred from the city.")
-    currency_symbol: str = Field(default="₹", description="Currency symbol for display.")
+    currency: str = Field(default="USD", description="ISO currency code, inferred from the city.")
+    currency_symbol: str = Field(default="$", description="Currency symbol for display.")
     available_hours: float = Field(default=4.0, description="Hours the user has free.")
     start_preference: str = Field(
         default="flexible",
         description="When they'd like to start: morning / afternoon / evening / flexible.",
     )
     transport_cost_per_km: float = Field(
-        default=15.0,
-        description="Typical local ride-hail/auto cost per km, in local currency.",
+        default=1.5,
+        description="Typical local ride-hail/taxi cost per km, in local currency.",
     )
     mood: str = Field(default="", description="The user's mood / energy level in their words.")
     interests: list[str] = Field(default_factory=list, description="Things they enjoy.")
