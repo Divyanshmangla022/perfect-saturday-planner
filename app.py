@@ -90,15 +90,17 @@ def render_plan(plan: Plan, profile) -> None:
     if plan.weather_note:
         st.caption(f"🌤️ {plan.weather_note}")
 
-    # Headline metrics.
+    # Headline metrics. Delta strings start with the signed number so Streamlit
+    # colours them correctly (inverse: under budget / within time = green).
     c1, c2, c3 = st.columns(3)
-    over = plan.cost.total_cost > profile.budget
+    cost_delta = plan.cost.total_cost - profile.budget
+    time_delta_h = (plan.cost.total_minutes - profile.available_hours * 60) / 60
     c1.metric("Estimated cost", f"{sym}{plan.cost.total_cost:.0f}",
-              delta=f"{sym}{plan.cost.total_cost - profile.budget:+.0f} vs budget",
-              delta_color="inverse")
+              delta=f"{cost_delta:+,.0f} vs budget", delta_color="inverse",
+              help="Negative means the plan is under budget.")
     c2.metric("Time needed", f"{plan.cost.total_minutes/60:.1f} h",
-              delta=f"{(plan.cost.total_minutes - profile.available_hours*60)/60:+.1f} h",
-              delta_color="inverse")
+              delta=f"{time_delta_h:+.1f} h vs free time", delta_color="inverse",
+              help="Negative means the plan fits inside your available time.")
     c3.metric("Stops", str(len(plan.items)))
 
     budget_used = min(plan.cost.total_cost / profile.budget, 1.0) if profile.budget else 0
