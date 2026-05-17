@@ -27,6 +27,27 @@ _CITY_SPEED_KMH = 18.0
 # payloads. A genuine request never needs this much text.
 MAX_INPUT_CHARS = 4000
 
+# ISO 4217 currency code -> display symbol. The LLM reliably produces ASCII
+# currency codes but often mangles non-ASCII symbol glyphs (emitting a unicode
+# escape sequence as literal text instead of the glyph), so we map it ourselves.
+CURRENCY_SYMBOLS = {
+    "USD": "$", "EUR": "€", "GBP": "£", "JPY": "¥", "CNY": "¥", "INR": "₹",
+    "AUD": "A$", "CAD": "C$", "NZD": "NZ$", "HKD": "HK$", "SGD": "S$",
+    "CHF": "CHF", "SEK": "kr", "NOK": "kr", "DKK": "kr", "PLN": "zł",
+    "RUB": "₽", "TRY": "₺", "BRL": "R$", "MXN": "$", "ZAR": "R", "AED": "AED",
+    "SAR": "SAR", "ILS": "₪", "THB": "฿", "KRW": "₩", "IDR": "Rp", "MYR": "RM",
+    "PHP": "₱", "VND": "₫", "NPR": "₨", "PKR": "₨", "LKR": "₨", "BDT": "৳",
+    "EGP": "E£",
+}
+
+
+def _currency_symbol(code: str) -> tuple[str, str]:
+    """Return a clean (ISO code, display symbol) pair from a raw LLM value."""
+    code = (code or "").strip().upper()
+    if not (len(code) == 3 and code.isalpha()):
+        code = "USD"
+    return code, CURRENCY_SYMBOLS.get(code, f"{code} ")
+
 
 class InputRejected(Exception):
     """Raised by the input guardrail for oversized input."""
@@ -53,6 +74,9 @@ def parse_preferences(raw_input: str, llm: LLMClient) -> PreferenceProfile:
     profile = llm.complete_json(
         prompt, PreferenceProfile, system=prompts.PARSE_SYSTEM, temperature=0.2,
     )
+    # Derive the currency symbol from the ISO code in code — never trust the
+    # LLM to emit the non-ASCII glyph itself.
+    profile.currency, profile.currency_symbol = _currency_symbol(profile.currency)
     # Guard against an over-eager model asking endless questions.
     profile.clarifying_questions = profile.clarifying_questions[:2]
     if not profile.clarifying_questions:

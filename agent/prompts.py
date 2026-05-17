@@ -33,8 +33,9 @@ Rules:
   town for a short or low-budget day, a farther well-known one for a long,
   well-funded day. The user arranges their own travel to the destination; you
   plan the day spent there.
-- Infer the local currency and its symbol from the city's country. If the city
-  or country cannot be determined, default to USD ($).
+- currency: the local currency as its 3-letter ISO 4217 code (e.g. USD, EUR,
+  JPY). If the city or country cannot be determined, use USD. Output only the
+  code — the display symbol is added by the app, not by you.
 - available_hours: convert any phrasing ("a full day", "4 hours", "an evening")
   into a number of hours.
 - transport_cost_per_km: estimate the typical local ride-hail/taxi cost per
