@@ -34,14 +34,25 @@ CONSTRAINT_OPTIONS = ["vegetarian", "vegan", "avoid crowded places", "wheelchair
 # --------------------------------------------------------------------------
 # API key
 # --------------------------------------------------------------------------
-def resolve_api_key() -> str | None:
-    """Find the Gemini key: Streamlit secrets > env var > sidebar input."""
+def shared_api_key() -> str | None:
+    """A key configured by the app owner — Streamlit secret or env var."""
     try:
         if "GEMINI_API_KEY" in st.secrets:
             return st.secrets["GEMINI_API_KEY"]
     except Exception:  # noqa: BLE001 - secrets file may not exist locally
         pass
-    return os.getenv("GEMINI_API_KEY") or st.session_state.get("api_key_input")
+    return os.getenv("GEMINI_API_KEY")
+
+
+def resolve_api_key() -> str | None:
+    """The key the agent will use.
+
+    A key typed into the sidebar wins — so anyone can test with their own key
+    (and spare the owner's quota) — otherwise fall back to the owner's shared
+    key from Streamlit secrets / env.
+    """
+    typed = st.session_state.get("api_key_input")
+    return (typed.strip() if typed else None) or shared_api_key()
 
 
 # --------------------------------------------------------------------------
@@ -246,11 +257,14 @@ init_state()
 # --------------------------------------------------------------------------
 with st.sidebar:
     st.markdown("### ⚙️ Setup")
-    if resolve_api_key():
-        st.success("Gemini API key detected.")
+    if shared_api_key():
+        st.success("Ready to use — a Gemini key is already configured.")
+        st.caption("Prefer your own key? Paste it below to use it instead (optional).")
     else:
-        st.text_input("Gemini API key", type="password", key="api_key_input",
-                      help="Get a free key at aistudio.google.com/apikey")
+        st.info("Paste a free Gemini API key below to start.")
+    st.text_input("Gemini API key", type="password", key="api_key_input",
+                  help="Get a free key at aistudio.google.com/apikey. "
+                       "Leave blank to use the app's built-in key.")
     st.markdown("---")
     st.markdown(
         "**How it works**\n\n"
