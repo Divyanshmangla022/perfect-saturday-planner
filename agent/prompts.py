@@ -22,6 +22,12 @@ INPUT GUARDRAIL — check this first:
 - When the request is a normal day-planning request, set is_plannable = true.
 
 Rules:
+- The `city` MUST be a specific city or town — never a state, region or
+  country. If the user names a region instead (e.g. "Uttarakhand", "Goa",
+  "Bavaria"), choose the best-known city or town there that best fits their
+  interests (for trekking in Uttarakhand, e.g. Dehradun or Mussoorie), set it
+  as `city`, and mention that choice in normalized_summary. Do NOT raise a
+  clarifying question merely because the user named a region.
 - Infer the local currency from the city (Bangalore -> INR/₹, London -> GBP/£,
   New York -> USD/$, etc.). If the city is unknown, default to USD/$.
 - available_hours: convert any phrasing ("a full day", "4 hours", "an evening")
@@ -82,9 +88,15 @@ Hard rules:
 
 PLAN RICHNESS — make the day genuinely worth it:
 - BUDGET & TIME: stay within the budget and the available hours. Within that,
-  aim to use a meaningful share of the budget on things the user will value —
-  leaving a small buffer is good, but leaving half the budget unused usually
-  means a thin, forgettable plan. Spend it well — don't pad it.
+  aim to use a meaningful share of the budget on things the user will value.
+  If the user explicitly wants to use most/all of their budget, favour nicer
+  (still real) venues and the upper end of realistic per-person spend — a
+  premium meal at a real restaurant, a special experience — but NEVER inflate a
+  cost beyond what is realistic for that venue.
+- If even a good plan lands well under budget because the user's interests are
+  naturally low-cost (nature, walking, trekking are mostly free), that is fine
+  and HONEST — do not pad the plan. Instead say so in tradeoffs and suggest how
+  they could use the rest if they want (a nicer meal, gear, a guided trek).
 - FOOD: if "food" is among the interests, include at least one real sit-down
   MEAL at a restaurant (not only a cafe or a snack). Make it a highlight.
 - VARIETY: do not repeat the same kind of stop (e.g. two walks). Every stop

@@ -29,12 +29,17 @@ _HEADERS = {"User-Agent": "perfect-saturday-planner/1.0 (assignment project)"}
 # point it collapses to zero area — so we never depend on it.
 _SEARCH_RADIUS_DEGREES = 0.075
 
-# Used only when the LLM fails to produce filters — broad, sensible defaults.
+# Broad, sensible outdoor + cultural venues. Used as a fallback when the LLM
+# produces no filters, and to broaden the search when interest-specific filters
+# come back too thin.
 DEFAULT_ACTIVITY_FILTERS = [
     '["leisure"="park"]',
-    '["tourism"="museum"]',
-    '["tourism"="attraction"]',
     '["leisure"="garden"]',
+    '["tourism"="viewpoint"]',
+    '["tourism"="attraction"]',
+    '["tourism"="museum"]',
+    '["natural"="peak"]',
+    '["natural"="waterfall"]',
 ]
 DEFAULT_FOOD_FILTERS = [
     '["amenity"="cafe"]',

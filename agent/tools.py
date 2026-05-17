@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import math
 
+import httpx
+
 from agent import prompts
 from agent.llm import LLMClient
 from agent.models import (
@@ -78,11 +80,27 @@ def fetch_weather(geo: GeoLocation) -> Weather | None:
 # Tool 4 — find activity venues  (real data: OSM Overpass)
 # ==========================================================================
 def find_activities(profile: PreferenceProfile, geo: GeoLocation) -> list[POI]:
-    """Search OpenStreetMap for things to do that match the user's interests."""
-    return osm.search_pois(
+    """Search OpenStreetMap for things to do that match the user's interests.
+
+    Interest-specific tags can be rare (e.g. "trekking" → peaks/hiking routes
+    that OSM barely maps). When the interest search comes back thin, broaden it
+    with generic outdoor + cultural venues so the planner has real choices
+    instead of an empty itinerary.
+    """
+    pois = osm.search_pois(
         profile.activity_osm_filters, geo.bbox, category="activity",
         fallback_filters=osm.DEFAULT_ACTIVITY_FILTERS,
     )
+    if len(pois) < 12:
+        seen = {p.osm_id for p in pois}
+        try:
+            extra = osm.search_pois(
+                osm.DEFAULT_ACTIVITY_FILTERS, geo.bbox, category="activity",
+            )
+            pois += [p for p in extra if p.osm_id not in seen]
+        except httpx.HTTPError:
+            pass  # keep whatever the first search returned
+    return pois[:30]
 
 
 # ==========================================================================
