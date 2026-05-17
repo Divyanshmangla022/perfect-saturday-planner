@@ -259,7 +259,8 @@ with st.sidebar:
     st.markdown("### ⚙️ Setup")
     if shared_api_key():
         st.success("Ready to use — a Gemini key is already configured.")
-        st.caption("Prefer your own key? Paste it below to use it instead (optional).")
+        st.caption("Hitting a rate limit, or prefer your own key? Paste a Gemini "
+                   "key below to use it instead (optional).")
     else:
         st.info("Paste a free Gemini API key below to start.")
     st.text_input("Gemini API key", type="password", key="api_key_input",
@@ -381,6 +382,12 @@ elif st.session_state.mode == "clarify":
 elif st.session_state.mode == "result":
     if st.session_state.error and not st.session_state.plan:
         st.error(f"😕 {st.session_state.error}")
+        _err = st.session_state.error.lower()
+        if any(k in _err for k in ("ai service", "gemini", "couldn't build",
+                                   "rate", "quota", "resource", "429")):
+            st.info("💡 This can happen if the shared free-tier key is rate-limited. "
+                    "Paste your own Gemini key in the sidebar (**⚙️ Setup**) and try "
+                    "again — a free key takes a minute at aistudio.google.com/apikey.")
     elif st.session_state.plan:
         render_plan(st.session_state.plan, st.session_state.profile)
 

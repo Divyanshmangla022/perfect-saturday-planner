@@ -6,6 +6,10 @@ streams back a personalised, costed itinerary, explaining *why* each stop fits
 you and showing its reasoning step by step.
 
 > **🔗 Live app:** **https://perfect-saturday-planner-myfq3etcxmklvfdx3efekv.streamlit.app/**
+>
+> *The app ships with a shared Gemini key so you can use it straight away. If it's
+> ever rate-limited (free tier), paste your own free key into the sidebar
+> (**⚙️ Setup**) — get one in a minute at <https://aistudio.google.com/apikey>.*
 
 ![Python](https://img.shields.io/badge/python-3.12-blue)
 ![Streamlit](https://img.shields.io/badge/ui-streamlit-ff4b4b)
