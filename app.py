@@ -105,6 +105,15 @@ def render_plan(plan: Plan, profile) -> None:
     st.progress(budget_used, text=f"Budget used: {sym}{plan.cost.total_cost:.0f} "
                                   f"of {sym}{profile.budget:.0f}")
 
+    # Anti-hallucination indicator.
+    g = plan.grounding
+    if g.venue_stops and g.grounding_score >= 1.0:
+        st.success(f"🔒 Grounded: all {g.venue_stops} venues are real, verified "
+                   "OpenStreetMap places — nothing invented.")
+    elif g.venue_stops:
+        st.warning(f"🔒 Grounded: {g.grounded_stops}/{g.venue_stops} venues verified "
+                   "on OpenStreetMap — unverified stops are flagged below.")
+
     # Itinerary timeline.
     st.markdown("#### The itinerary")
     for item in plan.items:
@@ -123,7 +132,10 @@ def render_plan(plan: Plan, profile) -> None:
                             unsafe_allow_html=True)
             st.markdown(f"💡 _{item.why_it_fits}_")
             if item.osm_id:
-                st.caption(f"[View on OpenStreetMap](https://www.openstreetmap.org/{item.osm_id})")
+                st.caption(f"✅ Verified real place — "
+                           f"[view on OpenStreetMap](https://www.openstreetmap.org/{item.osm_id})")
+            elif item.category in ("food", "activity"):
+                st.caption("⚠️ Not tied to a verified place — treat as a loose suggestion.")
 
     # Cost breakdown.
     with st.expander("💰 Cost breakdown"):

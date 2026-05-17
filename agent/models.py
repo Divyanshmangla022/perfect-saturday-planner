@@ -47,6 +47,15 @@ class PreferenceProfile(BaseModel):
     needs_clarification: bool = Field(default=False)
     clarifying_questions: list[str] = Field(default_factory=list)
 
+    # Input guardrail. The parse step sets is_plannable=false for abuse, nonsense,
+    # off-topic requests, or attempts to override the agent's instructions.
+    is_plannable: bool = Field(
+        default=True, description="False if this is not a genuine day-planning request."
+    )
+    rejection_reason: str = Field(
+        default="", description="Polite explanation shown when is_plannable is false."
+    )
+
     normalized_summary: str = Field(
         default="", description="One-line restatement of what the user asked for."
     )
@@ -131,6 +140,21 @@ class ValidationResult(BaseModel):
     warnings: list[str] = Field(default_factory=list)
 
 
+class GroundingReport(BaseModel):
+    """Anti-hallucination check: how much of the plan is backed by real data."""
+
+    venue_stops: int = 0
+    grounded_stops: int = Field(
+        default=0, description="Venue stops linked to a real OpenStreetMap place."
+    )
+    grounding_score: float = Field(
+        default=1.0, description="grounded_stops / venue_stops; 1.0 means fully grounded."
+    )
+    ungrounded: list[str] = Field(
+        default_factory=list, description="Venue-type stops with no real place behind them."
+    )
+
+
 class Plan(BaseModel):
     """The final itinerary handed back to the UI."""
 
@@ -141,6 +165,7 @@ class Plan(BaseModel):
     validation: ValidationResult = Field(
         default_factory=lambda: ValidationResult(is_valid=True)
     )
+    grounding: GroundingReport = Field(default_factory=GroundingReport)
     weather_note: str = ""
     is_fallback: bool = False
 

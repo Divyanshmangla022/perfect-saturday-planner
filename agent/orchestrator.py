@@ -55,14 +55,29 @@ def run_agent(raw_input: str, llm: LLMClient, *,
       * an ERROR event (unrecoverable),
       * a RESULT event carrying the finished Plan.
     """
-    # ---- Tool 1: parse preferences ---------------------------------------
+    # ---- Tool 1: parse preferences (+ input guardrails) ------------------
     t0 = time.perf_counter()
-    yield _step("parse_preferences", "Reading your request…")
+    yield _step("parse_preferences", "Reading your request & running safety checks…")
     try:
         profile = tools.parse_preferences(raw_input, llm)
+    except tools.InputRejected as exc:
+        yield _done("parse_preferences", "Stopped by input guardrail", t0,
+                    status=StepStatus.FAILED)
+        yield _error(str(exc))
+        return
     except LLMError as exc:
         yield _error(f"Couldn't understand the request — the AI service failed: {exc}")
         return
+
+    # Content/scope guardrail — refuse abuse, off-topic input or injection.
+    if not profile.is_plannable:
+        yield _done("parse_preferences", "Request declined by input guardrail", t0,
+                    status=StepStatus.FAILED)
+        yield _error(profile.rejection_reason or
+                     "I can only help plan a fun, safe day out — try describing "
+                     "your ideal Saturday (city, budget, time, what you enjoy).")
+        return
+
     yield _done("parse_preferences",
                 f"Understood: {profile.normalized_summary or profile.city}", t0,
                 detail=f"{profile.city} · {profile.currency_symbol}{profile.budget:.0f} · "
@@ -154,6 +169,20 @@ def run_agent(raw_input: str, llm: LLMClient, *,
         yield _done("generate_final_plan", f"Drafted {len(items)} stop(s)", t0,
                     detail=draft.summary)
 
+        # verify grounding (anti-hallucination)
+        t0 = time.perf_counter()
+        yield _step("verify_grounding", "Verifying every venue is a real place…")
+        grounding = tools.verify_grounding(items)
+        if grounding.ungrounded:
+            yield _done("verify_grounding",
+                        f"{grounding.grounded_stops}/{grounding.venue_stops} venues "
+                        "traced to OpenStreetMap", t0,
+                        detail="Unverified: " + ", ".join(grounding.ungrounded))
+        else:
+            yield _done("verify_grounding",
+                        f"All {grounding.venue_stops} venue(s) verified on "
+                        "OpenStreetMap ✓", t0)
+
         # cost
         t0 = time.perf_counter()
         yield _step("estimate_cost", "Costing the plan and travel between stops…")
@@ -169,7 +198,7 @@ def run_agent(raw_input: str, llm: LLMClient, *,
         result = tools.validate_plan(items, cost, profile, weather)
         if result.is_valid:
             yield _done("validate_plan", "Plan fits your budget and time ✓", t0)
-            plan = _assemble(items, draft, cost, result, weather)
+            plan = _assemble(items, draft, cost, result, weather, grounding)
             break
 
         yield _done("validate_plan", "Plan needs adjustment", t0,
@@ -194,12 +223,14 @@ def run_agent(raw_input: str, llm: LLMClient, *,
             yield _error(f"The AI couldn't build a fallback plan: {exc}")
             return
         items = tools.enrich_items(draft, candidates)
+        grounding = tools.verify_grounding(items)
         cost = tools.estimate_cost(items, profile)
         result = tools.validate_plan(items, cost, profile, weather)
         # Surface any remaining over-budget/time issues as warnings, not errors.
         result.warnings = result.warnings + result.violations
         yield _done("generate_final_plan", f"Fallback plan ready ({len(items)} stops)", t0)
-        plan = _assemble(items, draft, cost, result, weather, is_fallback=True)
+        plan = _assemble(items, draft, cost, result, weather, grounding,
+                         is_fallback=True)
 
     yield TraceEvent(kind=EventKind.RESULT, tool="generate_final_plan",
                      status=StepStatus.DONE, message="Your Saturday plan is ready.",
@@ -207,7 +238,7 @@ def run_agent(raw_input: str, llm: LLMClient, *,
 
 
 def _assemble(items, draft, cost, validation, weather: Weather | None,
-              *, is_fallback: bool = False) -> Plan:
+              grounding, *, is_fallback: bool = False) -> Plan:
     """Bundle the working pieces into the final Plan object."""
     weather_note = ""
     if weather:
@@ -216,8 +247,16 @@ def _assemble(items, draft, cost, validation, weather: Weather | None,
             f"{weather.temp_min_c:.0f}-{weather.temp_max_c:.0f}°C, "
             f"{weather.precipitation_chance}% chance of rain."
         )
+    # Be honest in the UI about any stop not backed by verified data.
+    if grounding.ungrounded:
+        validation = validation.model_copy()
+        validation.warnings = validation.warnings + [
+            f"{len(grounding.ungrounded)} stop(s) aren't tied to a verified "
+            f"place ({', '.join(grounding.ungrounded)}) — treat these as loose "
+            "ideas rather than confirmed venues."
+        ]
     return Plan(
         items=items, summary=draft.summary, tradeoffs=draft.tradeoffs,
-        cost=cost, validation=validation, weather_note=weather_note,
-        is_fallback=is_fallback,
+        cost=cost, validation=validation, grounding=grounding,
+        weather_note=weather_note, is_fallback=is_fallback,
     )

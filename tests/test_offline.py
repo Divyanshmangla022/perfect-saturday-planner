@@ -12,7 +12,10 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from agent.models import CostBreakdown, PlanItem, PreferenceProfile
-from agent.tools import _haversine_km, estimate_cost, validate_plan
+from agent.tools import (
+    InputRejected, MAX_INPUT_CHARS, _haversine_km, estimate_cost,
+    parse_preferences, validate_plan, verify_grounding,
+)
 from data import osm, weather
 
 
@@ -73,6 +76,41 @@ def test_validate_passes_reasonable_plan():
     profile = PreferenceProfile(city="Bangalore", budget=2000, available_hours=4)
     result = validate_plan(items, estimate_cost(items, profile), profile, None)
     assert result.is_valid
+
+
+def test_input_guardrail_rejects_oversized_and_empty():
+    # Length cap fires before any LLM call, so llm can be None here.
+    try:
+        parse_preferences("x" * (MAX_INPUT_CHARS + 1), None)
+        assert False, "oversized input should be rejected"
+    except InputRejected:
+        pass
+    try:
+        parse_preferences("   ", None)
+        assert False, "empty input should be rejected"
+    except InputRejected:
+        pass
+
+
+def test_verify_grounding_flags_invented_venue():
+    items = [
+        _item(1, "activity", 60, 0),                       # no osm_id -> ungrounded
+        _item(2, "food", 60, 300),
+    ]
+    items[1].osm_id = "node/123"                           # grounded
+    report = verify_grounding(items)
+    assert report.venue_stops == 2
+    assert report.grounded_stops == 1
+    assert report.grounding_score == 0.5
+    assert len(report.ungrounded) == 1
+
+
+def test_verify_grounding_all_real():
+    items = [_item(1, "food", 60, 300)]
+    items[0].osm_id = "way/99"
+    report = verify_grounding(items)
+    assert report.grounding_score == 1.0
+    assert not report.ungrounded
 
 
 if __name__ == "__main__":

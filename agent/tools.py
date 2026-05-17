@@ -12,7 +12,7 @@ import math
 from agent import prompts
 from agent.llm import LLMClient
 from agent.models import (
-    CostBreakdown, DraftPlan, GeoLocation, PlanItem, POI,
+    CostBreakdown, DraftPlan, GeoLocation, GroundingReport, PlanItem, POI,
     PreferenceProfile, ValidationResult, Weather,
 )
 from data import osm, weather as weather_api
@@ -21,13 +21,33 @@ from data import osm, weather as weather_api
 # distance between two venues into a realistic travel time.
 _CITY_SPEED_KMH = 18.0
 
+# Input guardrail: cap raw input length to bound cost and blunt prompt-injection
+# payloads. A genuine request never needs this much text.
+MAX_INPUT_CHARS = 4000
+
+
+class InputRejected(Exception):
+    """Raised by the input guardrail for oversized input."""
+
 
 # ==========================================================================
 # Tool 1 — parse the user's request into a structured profile  (LLM)
 # ==========================================================================
 def parse_preferences(raw_input: str, llm: LLMClient) -> PreferenceProfile:
-    """Turn a form dump or free-text paragraph into a PreferenceProfile."""
-    prompt = prompts.PARSE_USER_TEMPLATE.format(raw_input=raw_input.strip())
+    """Turn a form dump or free-text paragraph into a PreferenceProfile.
+
+    Applies two input guardrails: a hard length cap (here) and a content/scope
+    check (delegated to the LLM via is_plannable / rejection_reason).
+    """
+    raw_input = (raw_input or "").strip()
+    if not raw_input:
+        raise InputRejected("Please describe what kind of Saturday you'd like.")
+    if len(raw_input) > MAX_INPUT_CHARS:
+        raise InputRejected(
+            f"That request is very long ({len(raw_input)} characters). "
+            f"Please keep it under {MAX_INPUT_CHARS} characters."
+        )
+    prompt = prompts.PARSE_USER_TEMPLATE.format(raw_input=raw_input)
     profile = llm.complete_json(
         prompt, PreferenceProfile, system=prompts.PARSE_SYSTEM, temperature=0.2,
     )
@@ -167,7 +187,12 @@ def generate_draft(profile: PreferenceProfile, weather: Weather | None,
 
 
 def enrich_items(draft: DraftPlan, candidates: list[POI]) -> list[PlanItem]:
-    """Attach real coordinates/OSM ids to the LLM's draft items."""
+    """Attach real coordinates/OSM ids to the LLM's draft items.
+
+    Anti-hallucination: when a stop references a real venue, its location_name
+    is taken from OpenStreetMap data — never from the LLM's free text — so the
+    place's identity always comes from the source of truth.
+    """
     items: list[PlanItem] = []
     for di in sorted(draft.items, key=lambda d: d.order):
         poi = candidates[di.poi_index] if 0 <= di.poi_index < len(candidates) else None
@@ -178,13 +203,32 @@ def enrich_items(draft: DraftPlan, candidates: list[POI]) -> list[PlanItem]:
             start_time=di.start_time,
             duration_minutes=max(0, di.duration_minutes),
             estimated_cost=max(0.0, di.estimated_cost),
-            location_name=di.location_name or (poi.name if poi else ""),
+            location_name=poi.name if poi else di.location_name,  # authoritative
             why_it_fits=di.why_it_fits,
             lat=poi.lat if poi else None,
             lon=poi.lon if poi else None,
             osm_id=poi.osm_id if poi else None,
         ))
     return items
+
+
+def verify_grounding(items: list[PlanItem]) -> GroundingReport:
+    """Anti-hallucination check — confirm venue stops trace back to real data.
+
+    A 'venue stop' (food or activity) should be backed by a real OpenStreetMap
+    place. Anything that isn't is flagged so the orchestrator and the UI can be
+    honest about it.
+    """
+    venue_items = [i for i in items if i.category in ("food", "activity")]
+    grounded = [i for i in venue_items if i.osm_id]
+    ungrounded = [i.title for i in venue_items if not i.osm_id]
+    score = len(grounded) / len(venue_items) if venue_items else 1.0
+    return GroundingReport(
+        venue_stops=len(venue_items),
+        grounded_stops=len(grounded),
+        grounding_score=round(score, 2),
+        ungrounded=ungrounded,
+    )
 
 
 # ==========================================================================
