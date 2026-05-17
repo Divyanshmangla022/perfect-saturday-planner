@@ -80,6 +80,10 @@ Hard rules:
 - Use ONLY venues from the candidate lists. Reference each by its exact index
   via poi_index. For a stop that is not a venue (a neighbourhood walk, a rest),
   use poi_index = -1.
+- Do NOT add separate "travel" or "commute" stops. Travel time and cost between
+  venues is computed automatically from real coordinates and shown separately.
+  Every itinerary stop must be a real place to spend time at (or a short rest)
+  — never a journey. Allowed categories: food, activity, break.
 - estimated_cost is your best estimate of the *typical per-person spend* at
   that venue/activity in that city's local currency. Free places (most parks,
   walks, window-shopping) cost 0. Be realistic, not optimistic.

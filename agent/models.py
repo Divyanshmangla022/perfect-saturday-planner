@@ -109,7 +109,7 @@ class PlanItem(BaseModel):
 
     order: int
     title: str
-    category: str = Field(description="food / activity / break / travel")
+    category: str = Field(description="food / activity / break")
     start_time: str = Field(description="HH:MM, 24-hour.")
     duration_minutes: int
     estimated_cost: float
@@ -178,7 +178,7 @@ class DraftItem(BaseModel):
 
     order: int
     title: str
-    category: str = Field(description="food / activity / break / travel")
+    category: str = Field(description="food / activity / break")
     start_time: str
     duration_minutes: int
     estimated_cost: float
