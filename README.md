@@ -5,7 +5,7 @@ free time, mood, interests and constraints — it researches **real places** and
 streams back a personalised, costed itinerary, explaining *why* each stop fits
 you and showing its reasoning step by step.
 
-> **Live app:** _<add your Streamlit Cloud URL here after deploying>_
+> **🔗 Live app:** **https://perfect-saturday-planner-myfq3etcxmklvfdx3efekv.streamlit.app/**
 
 ![Python](https://img.shields.io/badge/python-3.12-blue)
 ![Streamlit](https://img.shields.io/badge/ui-streamlit-ff4b4b)
