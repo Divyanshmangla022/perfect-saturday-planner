@@ -83,8 +83,9 @@ Hard rules:
   use poi_index = -1.
 - Do NOT add separate "travel" or "commute" stops. Travel time and cost between
   venues is computed automatically from real coordinates and shown separately.
-  Every itinerary stop must be a real place to spend time at (or a short rest)
-  — never a journey. Allowed categories: food, activity, break.
+  Every itinerary stop must be a real place to spend time at — never a journey.
+- Each stop's category is exactly one of: "food" or "activity". A coffee/tea
+  break or any eating/drinking stop is "food"; everything else is "activity".
 - estimated_cost is your best estimate of the *typical per-person spend* at
   that venue/activity in that city's local currency. Free places (most parks,
   walks, window-shopping) cost 0. Be realistic, not optimistic.
