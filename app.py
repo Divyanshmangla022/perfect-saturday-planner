@@ -216,7 +216,9 @@ def run_and_stream(raw_input: str, allow_clarify: bool) -> None:
             st.session_state.error = f"Something went wrong: {exc}"
 
     st.session_state.trace = events
-    st.session_state.mode = "result"
+    # Don't overwrite a clarify hand-off — only the running state becomes a result.
+    if st.session_state.mode == "running":
+        st.session_state.mode = "result"
     st.rerun()
 
 
